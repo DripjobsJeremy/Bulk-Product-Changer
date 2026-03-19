@@ -84,9 +84,9 @@
   .modal-footer{padding:18px 24px;border-top:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;position:sticky;bottom:0;background:#fff}
   .price-diff{display:flex;flex-direction:column;gap:2px}
   .price-diff-label{font-size:12px;color:#6b7280;font-weight:500}
-  .price-diff-value{font-size:22px;font-weight:800;color:#059669}
-  .price-diff-value.negative{color:#dc2626}
-  .price-diff-value.zero{color:#9ca3af;font-weight:700}
+  .price-diff-value{font-size:22px;font-weight:800;color:#9ca3af}
+  .price-diff-value.savings{color:#059669}
+  .price-diff-value.increase{color:#dc2626}
   .footer-actions{display:flex;gap:10px}
   .cost-summary-area{margin-bottom:0}
   .area-header-row{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;background:#f9fafb;border-bottom:1px solid #e5e7eb}
@@ -632,11 +632,14 @@ function updatePriceDiff() {
   
   const el = document.getElementById('priceDiffValue');
   if (diff === 0) {
-    el.textContent = '$0.00';
-    el.className = 'price-diff-value zero';
+    el.textContent = 'No change';
+    el.className = 'price-diff-value';
+  } else if (diff < 0) {
+    el.textContent = 'Saves $' + Math.abs(diff).toFixed(2);
+    el.className = 'price-diff-value savings';
   } else {
-    el.textContent = (diff > 0 ? '+' : '-') + '$' + Math.abs(diff).toFixed(2);
-    el.className = 'price-diff-value' + (diff < 0 ? ' negative' : '');
+    el.textContent = '+$' + diff.toFixed(2) + ' more';
+    el.className = 'price-diff-value increase';
   }
 }
 
