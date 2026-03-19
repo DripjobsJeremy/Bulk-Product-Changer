@@ -137,6 +137,22 @@
   select.product-select-inline{padding:7px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;color:#374151;background:#fff;cursor:pointer;outline:none;width:100%;max-width:280px;transition:border-color 0.15s}
   select.product-select-inline:focus{border-color:#6366f1}
   .proto-note{position:fixed;top:12px;right:16px;background:#1a1a2e;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;z-index:300;opacity:0.9}
+  .csel{position:relative;width:100%;max-width:280px;-webkit-user-select:none;user-select:none}
+  .csel-trigger{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;color:#374151;background:#fff;cursor:pointer;transition:border-color 0.15s;gap:6px}
+  .csel-trigger:hover,.csel.open .csel-trigger{border-color:#6366f1}
+  .csel-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .csel-arrow{flex-shrink:0;transition:transform 0.15s}
+  .csel.open .csel-arrow{transform:rotate(180deg)}
+  .csel-list{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:500;overflow:hidden;max-height:220px;overflow-y:auto}
+  .csel.open .csel-list{display:block}
+  .csel-opt{padding:9px 12px;cursor:pointer;border-bottom:1px solid #f3f4f6}
+  .csel-opt:last-child{border-bottom:none}
+  .csel-opt:hover{background:#f0f0ff}
+  .csel-opt.active{background:#f0f0ff}
+  .csel-opt-name{display:block;font-size:13px;font-weight:500;color:#374151}
+  .csel-opt.active .csel-opt-name{color:#6366f1;font-weight:600}
+  .csel-opt-price{display:block;font-size:11px;color:#9ca3af;margin-top:1px}
+  .csel-opt.active .csel-opt-price{color:#a5b4fc}
 </style>
 </head>
 <body>
@@ -498,51 +514,64 @@ function handleOverlayClick(e) {
   if (e.target === document.getElementById('changeProductsModal')) closeModal();
 }
 
+function buildCustomSelect(substrateId, currentKey) {
+  const csId = 'cs_' + substrateId;
+  const label = currentKey ? PRODUCTS[currentKey].name : 'Select a product...';
+  const opts = Object.entries(PRODUCTS).map(([key, p]) =>
+    '<div class="csel-opt' + (key === currentKey ? ' active' : '') + '" data-key="' + key + '" ' +
+    'onmousedown="pickOpt(\'' + csId + '\',\'' + substrateId + '\',\'' + key + '\')">' +
+    '<span class="csel-opt-name">' + p.name + '</span>' +
+    '<span class="csel-opt-price">$' + p.price.toFixed(2) + '/' + p.unit + '</span>' +
+    '</div>'
+  ).join('');
+  return '<div class="csel" id="' + csId + '">' +
+    '<div class="csel-trigger" tabindex="0" onclick="toggleSel(\'' + csId + '\')" onblur="closeSel(\'' + csId + '\')">' +
+    '<span class="csel-label">' + label + '</span>' +
+    '<svg class="csel-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+    '</div>' +
+    '<div class="csel-list">' + opts + '</div>' +
+    '</div>';
+}
+
+function toggleSel(csId) {
+  const cs = document.getElementById(csId);
+  const wasOpen = cs.classList.contains('open');
+  document.querySelectorAll('.csel.open').forEach(el => el.classList.remove('open'));
+  if (!wasOpen) cs.classList.add('open');
+}
+
+function closeSel(csId) {
+  // Delay so onmousedown on an option fires before blur closes the list.
+  setTimeout(() => {
+    const cs = document.getElementById(csId);
+    if (cs) cs.classList.remove('open');
+  }, 0);
+}
+
+function pickOpt(csId, substrateId, productKey) {
+  const cs = document.getElementById(csId);
+  cs.querySelector('.csel-label').textContent = PRODUCTS[productKey].name;
+  cs.querySelectorAll('.csel-opt').forEach(o => o.classList.toggle('active', o.dataset.key === productKey));
+  cs.classList.remove('open');
+  handleSubstrateChange(substrateId, productKey);
+}
+
 function renderSubstrateRows(substrates) {
   const tbody = document.getElementById('substrateTableBody');
   tbody.innerHTML = substrates.map(s => {
     const currentKey = pendingSelections[s.id] !== undefined ? pendingSelections[s.id] : s.productKey;
     const currentProduct = currentKey ? PRODUCTS[currentKey] : null;
     const hasProduct = currentKey !== null;
-    
-    const productOptions = Object.entries(PRODUCTS).map(([key, p]) => {
-      const fullText = p.name + ' \u2014 $' + p.price.toFixed(2) + '/' + p.unit;
-      // Selected option shows just the name (price is in the Unit Price column);
-      // all other options show the full text so users can compare while choosing.
-      return '<option value="' + key + '"' +
-        (key === currentKey ? ' selected' : '') +
-        ' data-full="' + fullText + '">' +
-        (key === currentKey ? p.name : fullText) +
-        '</option>';
-    }).join('');
 
     return '<tr>' +
       '<td><div class="substrate-name">' + s.name + '</div><div class="substrate-type">' + s.type + '</div></td>' +
-      '<td>' + (hasProduct
-        ? '<select class="product-select-inline" onchange="handleSubstrateChange(\'' + s.id + '\', this.value)" onfocus="selectExpand(this)" onblur="selectCollapse(this)"><option value="">Select a product...</option>' + productOptions + '</select>'
-        : '<span class="no-product-text">No product</span>'
-      ) + '</td>' +
-      '<td style="text-align:right">' + (currentProduct 
+      '<td>' + (hasProduct ? buildCustomSelect(s.id, currentKey) : '<span class="no-product-text">No product</span>') + '</td>' +
+      '<td style="text-align:right">' + (currentProduct
         ? '<span class="unit-price">$' + currentProduct.price.toFixed(2) + ' <span class="unit-price-unit">/' + currentProduct.unit + '</span></span>'
         : '<span style="color:#d1d5db">—</span>'
       ) + '</td>' +
     '</tr>';
   }).join('');
-}
-
-// When the dropdown opens, expand all options to show name + price for easy comparison.
-function selectExpand(sel) {
-  Array.from(sel.options).forEach(opt => {
-    if (opt.dataset.full) opt.text = opt.dataset.full;
-  });
-}
-
-// When the dropdown closes, collapse the selected option back to just the name.
-function selectCollapse(sel) {
-  const selected = sel.options[sel.selectedIndex];
-  if (selected && PRODUCTS[selected.value]) {
-    selected.text = PRODUCTS[selected.value].name;
-  }
 }
 
 function handleSubstrateChange(substrateId, productKey) {
@@ -554,11 +583,6 @@ function handleSubstrateChange(substrateId, productKey) {
     const rows = document.querySelectorAll('#substrateTableBody tr');
     const row = rows[substrateIndex];
     if (row) {
-      // Collapse selected option to name-only now (onblur fires after, but this
-      // ensures it's immediate even if blur timing varies across browsers).
-      const sel = row.querySelector('select');
-      if (sel) selectCollapse(sel);
-
       const priceCell = row.cells[2];
       const product = productKey ? PRODUCTS[productKey] : null;
       priceCell.innerHTML = product
