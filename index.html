@@ -86,6 +86,7 @@
   .price-diff-label{font-size:12px;color:#6b7280;font-weight:500}
   .price-diff-value{font-size:22px;font-weight:800;color:#059669}
   .price-diff-value.negative{color:#dc2626}
+  .price-diff-value.zero{color:#9ca3af;font-weight:700}
   .footer-actions{display:flex;gap:10px}
   .cost-summary-area{margin-bottom:0}
   .area-header-row{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;background:#f9fafb;border-bottom:1px solid #e5e7eb}
@@ -580,8 +581,45 @@ function updatePriceDiff() {
   });
   
   const el = document.getElementById('priceDiffValue');
-  el.textContent = (diff >= 0 ? '+' : '') + '$' + Math.abs(diff).toFixed(2);
-  el.className = 'price-diff-value' + (diff < 0 ? ' negative' : '');
+  if (diff === 0) {
+    el.textContent = '$0.00';
+    el.className = 'price-diff-value zero';
+  } else {
+    el.textContent = (diff > 0 ? '+' : '-') + '
+}
+
+function saveChanges() {
+  closeModal();
+  
+  // Apply pending changes to AREAS data
+  if (currentArea || Object.keys(pendingSelections).length > 0) {
+    // Get active area from last modal open (stored before close)
+  }
+  
+  // Show loading
+  document.getElementById('loadingOverlay').classList.add('show');
+  
+  setTimeout(() => {
+    document.getElementById('loadingOverlay').classList.remove('show');
+    
+    // Show toast
+    const toast = document.getElementById('successToast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 4000);
+  }, 1800);
+}
+
+// Tab switching (for sidebar items)
+function showSection(section) {
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+</script>
+</body>
+</html>
+ + Math.abs(diff).toFixed(2);
+    el.className = 'price-diff-value' + (diff < 0 ? ' negative' : '');
+  }
 }
 
 function saveChanges() {
