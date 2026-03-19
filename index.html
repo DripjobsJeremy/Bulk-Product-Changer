@@ -505,14 +505,21 @@ function renderSubstrateRows(substrates) {
     const currentProduct = currentKey ? PRODUCTS[currentKey] : null;
     const hasProduct = currentKey !== null;
     
-    const productOptions = Object.entries(PRODUCTS).map(([key, p]) =>
-      '<option value="' + key + '"' + (key === currentKey ? ' selected' : '') + '>' + p.name + ' — $' + p.price.toFixed(2) + '/' + p.unit + '</option>'
-    ).join('');
+    const productOptions = Object.entries(PRODUCTS).map(([key, p]) => {
+      const fullText = p.name + ' \u2014 $' + p.price.toFixed(2) + '/' + p.unit;
+      // Selected option shows just the name (price is in the Unit Price column);
+      // all other options show the full text so users can compare while choosing.
+      return '<option value="' + key + '"' +
+        (key === currentKey ? ' selected' : '') +
+        ' data-full="' + fullText + '">' +
+        (key === currentKey ? p.name : fullText) +
+        '</option>';
+    }).join('');
 
     return '<tr>' +
       '<td><div class="substrate-name">' + s.name + '</div><div class="substrate-type">' + s.type + '</div></td>' +
-      '<td>' + (hasProduct 
-        ? '<select class="product-select-inline" onchange="handleSubstrateChange(\'' + s.id + '\', this.value)"><option value="">Select a product...</option>' + productOptions + '</select>'
+      '<td>' + (hasProduct
+        ? '<select class="product-select-inline" onchange="handleSubstrateChange(\'' + s.id + '\', this.value)" onfocus="selectExpand(this)" onblur="selectCollapse(this)"><option value="">Select a product...</option>' + productOptions + '</select>'
         : '<span class="no-product-text">No product</span>'
       ) + '</td>' +
       '<td style="text-align:right">' + (currentProduct 
@@ -523,19 +530,38 @@ function renderSubstrateRows(substrates) {
   }).join('');
 }
 
+// When the dropdown opens, expand all options to show name + price for easy comparison.
+function selectExpand(sel) {
+  Array.from(sel.options).forEach(opt => {
+    if (opt.dataset.full) opt.text = opt.dataset.full;
+  });
+}
+
+// When the dropdown closes, collapse the selected option back to just the name.
+function selectCollapse(sel) {
+  const selected = sel.options[sel.selectedIndex];
+  if (selected && PRODUCTS[selected.value]) {
+    selected.text = PRODUCTS[selected.value].name;
+  }
+}
+
 function handleSubstrateChange(substrateId, productKey) {
   pendingSelections[substrateId] = productKey || null;
-  
-  // Update unit price cell for this row
+
   const substrates = AREAS[currentArea] || [];
   const substrateIndex = substrates.findIndex(s => s.id === substrateId);
   if (substrateIndex >= 0) {
     const rows = document.querySelectorAll('#substrateTableBody tr');
     const row = rows[substrateIndex];
     if (row) {
+      // Collapse selected option to name-only now (onblur fires after, but this
+      // ensures it's immediate even if blur timing varies across browsers).
+      const sel = row.querySelector('select');
+      if (sel) selectCollapse(sel);
+
       const priceCell = row.cells[2];
       const product = productKey ? PRODUCTS[productKey] : null;
-      priceCell.innerHTML = product 
+      priceCell.innerHTML = product
         ? '<span class="unit-price">$' + product.price.toFixed(2) + ' <span class="unit-price-unit">/' + product.unit + '</span></span>'
         : '<span style="color:#d1d5db">—</span>';
     }
