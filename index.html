@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proposal Builder - Production Rates Prototype</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f6fa;color:#1a1a2e}
+  .app-shell{display:flex;flex-direction:column;height:100vh}
+  .top-bar{background:#fff;border-bottom:1px solid #e5e7eb;padding:12px 24px;display:flex;align-items:center;gap:16px;z-index:10}
+  .top-bar-logo{font-weight:700;font-size:18px;color:#6366f1}
+  .top-bar-title{font-size:15px;color:#374151;font-weight:500}
+  .top-bar-badge{background:#f0f0ff;color:#6366f1;border:1px solid #c7d2fe;border-radius:6px;padding:2px 10px;font-size:12px;font-weight:600}
+  .main-layout{display:flex;flex:1;overflow:hidden}
+  .sidebar{width:260px;background:#fff;border-right:1px solid #e5e7eb;padding:20px 0;overflow-y:auto;flex-shrink:0}
+  .sidebar-section{padding:8px 20px;font-size:11px;font-weight:700;color:#9ca3af;letter-spacing:0.08em;text-transform:uppercase;margin-top:8px}
+  .sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;font-size:14px;color:#374151;border-left:3px solid transparent;transition:all 0.15s}
+  .sidebar-item:hover{background:#f8f9fa;color:#6366f1}
+  .sidebar-item.active{background:#f0f0ff;color:#6366f1;border-left-color:#6366f1;font-weight:600}
+  .sidebar-item-icon{width:18px;height:18px;opacity:0.7}
+  .content-area{flex:1;overflow-y:auto;padding:32px}
+  .page-header{margin-bottom:24px}
+  .page-title{font-size:24px;font-weight:700;color:#111827}
+  .page-subtitle{font-size:14px;color:#6b7280;margin-top:4px}
+  .card{background:#fff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden}
+  .card-header{padding:20px 24px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between}
+  .card-title{font-size:16px;font-weight:700;color:#111827}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:1.5px solid transparent;transition:all 0.15s;text-decoration:none}
+  .btn-primary{background:#6366f1;color:#fff;border-color:#6366f1}
+  .btn-primary:hover{background:#4f46e5;border-color:#4f46e5}
+  .btn-outline{background:#fff;color:#374151;border-color:#d1d5db}
+  .btn-outline:hover{background:#f9fafb;border-color:#9ca3af}
+  .btn-sm{padding:5px 12px;font-size:13px}
+  .tab-nav{display:flex;gap:0;border-bottom:2px solid #e5e7eb;padding:0 24px;background:#fff}
+  .tab-item{padding:12px 16px;font-size:14px;font-weight:500;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s;white-space:nowrap}
+  .tab-item:hover{color:#374151}
+  .tab-item.active{color:#6366f1;border-bottom-color:#6366f1;font-weight:700}
+  .tab-content{display:none;padding:24px}
+  .tab-content.active{display:block}
+  .rates-table{width:100%;border-collapse:collapse}
+  .rates-table th{text-align:left;padding:10px 16px;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #e5e7eb;background:#f9fafb}
+  .rates-table td{padding:14px 16px;font-size:14px;color:#374151;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+  .rates-table tr:hover td{background:#fafafa}
+  .rates-table tr:last-child td{border-bottom:none}
+  .product-name{font-weight:600;color:#111827}
+  .product-type{font-size:12px;color:#9ca3af;background:#f3f4f6;border-radius:4px;padding:2px 7px;display:inline-block}
+  .price-cell{font-weight:600;color:#374151}
+  .coverage-cell{color:#6b7280}
+  .action-btns{display:flex;gap:6px;justify-content:flex-end}
+  .icon-btn{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;transition:all 0.15s}
+  .icon-btn:hover{background:#f0f0ff;border-color:#c7d2fe;color:#6366f1}
+  .search-row{display:flex;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid #e5e7eb}
+  .search-input{flex:1;padding:8px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;color:#374151;outline:none;transition:border-color 0.15s}
+  .search-input:focus{border-color:#6366f1}
+  .filter-select{padding:8px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;color:#374151;background:#fff;cursor:pointer;outline:none}
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:5px;font-size:12px;font-weight:600}
+  .badge-purple{background:#ede9fe;color:#7c3aed}
+  .badge-blue{background:#dbeafe;color:#1d4ed8}
+  .badge-green{background:#d1fae5;color:#065f46}
+  .badge-gray{background:#f3f4f6;color:#6b7280}
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;align-items:center;justify-content:center}
+  .overlay.open{display:flex}
+  .modal{background:#fff;border-radius:16px;width:700px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+  .modal-header{padding:24px 24px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e5e7eb;position:sticky;top:0;background:#fff;z-index:1}
+  .modal-header-left{display:flex;align-items:center;gap:12px}
+  .modal-title{font-size:20px;font-weight:700;color:#111827}
+  .modal-area-badge{display:inline-flex;align-items:center;gap:5px;background:#f0f0ff;color:#6366f1;border:1.5px solid #c7d2fe;border-radius:8px;padding:3px 10px;font-size:13px;font-weight:700}
+  .close-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;font-size:18px;transition:all 0.15s}
+  .close-btn:hover{background:#fee2e2;border-color:#fca5a5;color:#dc2626}
+  .bulk-apply-row{padding:16px 24px;background:#f9fafb;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:12px}
+  .bulk-label{font-size:14px;color:#6b7280;white-space:nowrap;font-weight:500}
+  .product-select{flex:1;padding:9px 14px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:14px;color:#374151;background:#fff;appearance:none;cursor:pointer;outline:none;transition:border-color 0.15s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+  .product-select:focus{border-color:#6366f1}
+  .substrate-table{width:100%;border-collapse:collapse}
+  .substrate-table th{text-align:left;padding:10px 24px;font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.07em;background:#f9fafb;border-bottom:1px solid #e5e7eb}
+  .substrate-table td{padding:14px 24px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+  .substrate-table tr:last-child td{border-bottom:none}
+  .substrate-name{font-weight:700;font-size:15px;color:#111827}
+  .substrate-type{font-size:12px;color:#9ca3af;margin-top:2px}
+  .no-product-text{color:#9ca3af;font-style:italic;font-size:14px}
+  .unit-price{font-size:15px;font-weight:700;color:#374151;text-align:right}
+  .unit-price-unit{font-size:12px;color:#9ca3af;font-weight:400}
+  .modal-footer{padding:18px 24px;border-top:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;position:sticky;bottom:0;background:#fff}
+  .price-diff{display:flex;flex-direction:column;gap:2px}
+  .price-diff-label{font-size:12px;color:#6b7280;font-weight:500}
+  .price-diff-value{font-size:22px;font-weight:800;color:#059669}
+  .price-diff-value.negative{color:#dc2626}
+  .footer-actions{display:flex;gap:10px}
+  .cost-summary-area{margin-bottom:0}
+  .area-header-row{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;background:#f9fafb;border-bottom:1px solid #e5e7eb}
+  .area-header-left{display:flex;align-items:center;gap:10px}
+  .area-name{font-size:16px;font-weight:700;color:#111827}
+  .area-header-actions{display:flex;align-items:center;gap:8px}
+  .cog-btn{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;border:1.5px solid #e5e7eb;background:#fff;color:#9ca3af;transition:all 0.15s;position:relative}
+  .cog-btn:hover{background:#f0f0ff;border-color:#c7d2fe;color:#6366f1}
+  .cog-tooltip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#111827;color:#fff;font-size:12px;font-weight:600;padding:4px 10px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 0.15s;z-index:10}
+  .cog-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:4px solid transparent;border-top-color:#111827}
+  .cog-btn:hover .cog-tooltip{opacity:1}
+  .change-products-banner{display:flex;align-items:center;justify-content:space-between;padding:11px 24px;background:#ede9fe;border-bottom:1px solid #ddd6fe;cursor:pointer;transition:background 0.15s}
+  .change-products-banner:hover{background:#ddd6fe}
+  .banner-left{display:flex;align-items:center;gap:8px;color:#6d28d9;font-size:14px;font-weight:700}
+  .banner-arrow{color:#6d28d9;font-size:16px;font-weight:700}
+  .cost-summary-body{padding:0}
+  .substrate-row{padding:16px 24px;border-bottom:1px solid #f3f4f6;display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr 1fr auto;align-items:center;gap:16px}
+  .substrate-row:last-child{border-bottom:none}
+  .substrate-row-header{padding:10px 24px;background:#f9fafb;display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr 1fr auto;gap:16px;font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid #e5e7eb}
+  .sub-row-name{font-weight:700;color:#111827;font-size:14px}
+  .sub-row-type{font-size:12px;color:#9ca3af}
+  .sub-row-value{font-size:14px;color:#374151}
+  .sub-row-value.bold{font-weight:700}
+  .sub-row-actions{display:flex;justify-content:flex-end}
+  .totals-row{padding:16px 24px;background:#f0f0ff;display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr 1fr auto;gap:16px;align-items:center;border-top:2px solid #c7d2fe}
+  .totals-label{font-size:12px;color:#6b7280;font-weight:500;margin-bottom:2px}
+  .totals-value{font-size:15px;font-weight:700;color:#111827}
+  .toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:#059669;color:#fff;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:700;display:none;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,0.2);align-items:center;gap:10px}
+  .toast.show{display:flex}
+  .loading-overlay{display:none;position:fixed;inset:0;background:rgba(255,255,255,0.8);z-index:150;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+  .loading-overlay.show{display:flex}
+  .spinner{width:40px;height:40px;border:3px solid #e5e7eb;border-top-color:#6366f1;border-radius:50%;animation:spin 0.8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-text{font-size:15px;font-weight:600;color:#374151}
+  .proposal-context{background:#fff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden;margin-bottom:24px}
+  .add-btn{display:inline-flex;align-items:center;gap:5px;background:#6366f1;color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;transition:background 0.15s}
+  .add-btn:hover{background:#4f46e5}
+  .optional-section{padding:16px 24px;border-top:2px solid #e5e7eb;background:#fafafa}
+  .optional-title{font-size:14px;font-weight:700;color:#6b7280;margin-bottom:12px}
+  .optional-row{padding:16px 0;border-bottom:1px solid #f3f4f6;display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr 1fr auto;gap:16px;align-items:center}
+  .optional-row:last-child{border-bottom:none}
+  .toggle{display:flex;align-items:center;gap:8px;font-size:13px;color:#6b7280;padding-top:6px}
+  .toggle-switch{width:36px;height:20px;background:#d1d5db;border-radius:10px;cursor:pointer;position:relative;transition:background 0.15s}
+  .toggle-switch.on{background:#6366f1}
+  .toggle-switch::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:left 0.15s;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+  .toggle-switch.on::after{left:18px}
+  .nav-tabs-row{display:flex;gap:0;border-bottom:none}
+  select.product-select-inline{padding:7px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;color:#374151;background:#fff;cursor:pointer;outline:none;width:100%;max-width:280px;transition:border-color 0.15s}
+  select.product-select-inline:focus{border-color:#6366f1}
+  .proto-note{position:fixed;top:12px;right:16px;background:#1a1a2e;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;z-index:300;opacity:0.9}
+</style>
+</head>
+<body>
+<div class="proto-note">🎨 Clickable Prototype — Ticket #86b3fm30n</div>
+
+<div class="app-shell">
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <span class="top-bar-logo">DripJobs</span>
+    <span style="color:#e5e7eb">|</span>
+    <span class="top-bar-title">Proposal Builder</span>
+    <span class="top-bar-badge">📋 Exterior Painting — 123 Main St</span>
+  </div>
+
+  <div class="main-layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-section">Proposal</div>
+      <div class="sidebar-item" onclick="showTab('overview')">
+        <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Overview
+      </div>
+      <div class="sidebar-item active" onclick="showSection('cost-summary')">
+        <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        Cost Summary
+      </div>
+      <div class="sidebar-item" onclick="">
+        <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a2 2 0 012-2z"/></svg>
+        Pricing Options
+      </div>
+      <div class="sidebar-item" onclick="">
+        <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+        Preview
+      </div>
+      <div class="sidebar-section">Settings</div>
+      <div class="sidebar-item" onclick="">
+        <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+        Production Rates
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="content-area">
+      <div class="page-header">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <h1 class="page-title">Cost Summary</h1>
+            <p class="page-subtitle">Exterior Painting — 123 Main St, Portland OR</p>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-outline">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              Preview Proposal
+            </button>
+            <button class="btn btn-primary">Send Proposal</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cost Summary Card -->
+      <div class="card cost-summary-area">
+        <div class="card-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="card-title">Whole House</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="btn btn-outline btn-sm">Edit Area</button>
+            <!-- ENTRY POINT A: Cog Icon -->
+            <div class="cog-btn" onclick="openModal('Whole House')" title="Change products">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+              <span class="cog-tooltip">Change products</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ENTRY POINT B: Purple Banner -->
+        <div class="change-products-banner" onclick="openModal('Whole House')">
+          <div class="banner-left">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+            Change all products in this area
+          </div>
+          <span class="banner-arrow">→</span>
+        </div>
+
+        <!-- Substrate Table Header -->
+        <div class="substrate-row-header">
+          <div>SUBSTRATE</div>
+          <div>HOURS</div>
+          <div>MATERIALS</div>
+          <div>LABOR</div>
+          <div>SUBTOTAL</div>
+          <div></div>
+        </div>
+
+        <!-- Substrate Rows -->
+        <div class="substrate-row">
+          <div><div class="sub-row-name">Siding &amp; Trim</div><div class="sub-row-type">Siding</div></div>
+          <div class="sub-row-value">29.6</div>
+          <div class="sub-row-value">$716.25</div>
+          <div class="sub-row-value">$2,371.20</div>
+          <div class="sub-row-value bold">$3,087.45</div>
+          <div class="sub-row-actions"><button class="btn btn-outline btn-sm">Edit</button></div>
+        </div>
+        <div class="substrate-row">
+          <div><div class="sub-row-name">Garage Door</div><div class="sub-row-type">Doors</div></div>
+          <div class="sub-row-value">2</div>
+          <div class="sub-row-value">$80.77</div>
+          <div class="sub-row-value">$160.00</div>
+          <div class="sub-row-value bold">$240.77</div>
+          <div class="sub-row-actions"><button class="btn btn-outline btn-sm">Edit</button></div>
+        </div>
+        <div class="substrate-row">
+          <div><div class="sub-row-name">Man Door(s)</div><div class="sub-row-type">Doors</div></div>
+          <div class="sub-row-value">5</div>
+          <div class="sub-row-value">$112.77</div>
+          <div class="sub-row-value">$400.00</div>
+          <div class="sub-row-value bold">$512.77</div>
+          <div class="sub-row-actions"><button class="btn btn-outline btn-sm">Edit</button></div>
+        </div>
+        <div class="substrate-row">
+          <div><div class="sub-row-name">Area Prep</div><div class="sub-row-type">Prep</div></div>
+          <div class="sub-row-value">4</div>
+          <div class="sub-row-value">$0.00</div>
+          <div class="sub-row-value">$320.00</div>
+          <div class="sub-row-value bold">$320.00</div>
+          <div class="sub-row-actions"><button class="btn btn-outline btn-sm">Edit</button></div>
+        </div>
+
+        <!-- Totals Row -->
+        <div class="totals-row">
+          <div>
+            <div class="totals-label">Total Hours</div>
+            <div class="totals-value">40.6</div>
+          </div>
+          <div></div>
+          <div>
+            <div class="totals-label">Total Materials</div>
+            <div class="totals-value">$909.79</div>
+          </div>
+          <div>
+            <div class="totals-label">Total Labor</div>
+            <div class="totals-value">$3,251.20</div>
+          </div>
+          <div>
+            <div class="totals-label">Project Total</div>
+            <div class="totals-value" style="color:#6366f1">$4,160.99</div>
+          </div>
+          <div></div>
+        </div>
+
+        <!-- Optional Add-Ons -->
+        <div class="optional-section">
+          <div class="optional-title">Optional Add-Ons</div>
+          <div class="optional-row">
+            <div><div class="sub-row-name">Soffit &amp; Fascia</div><div class="sub-row-type">Trim</div></div>
+            <div class="sub-row-value">8.2</div>
+            <div class="sub-row-value">$354.68</div>
+            <div class="sub-row-value">$658.67</div>
+            <div class="sub-row-value bold">$1,013.35</div>
+            <div class="sub-row-actions"><button class="btn btn-outline btn-sm">Edit</button></div>
+          </div>
+          <div class="toggle">
+            <div class="toggle-switch" onclick="this.classList.toggle('on')"></div>
+            <span>Is Optional</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Second area example -->
+      <div class="card cost-summary-area" style="margin-top:20px">
+        <div class="card-header">
+          <span class="card-title">Garage</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="btn btn-outline btn-sm">Edit Area</button>
+            <div class="cog-btn" onclick="openModal('Garage')" title="Change products">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+              <span class="cog-tooltip">Change products</span>
+            </div>
+          </div>
+        </div>
+        <div class="change-products-banner" onclick="openModal('Garage')">
+          <div class="banner-left">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+            Change all products in this area
+          </div>
+          <span class="banner-arrow">→</span>
+        </div>
+        <div class="substrate-row-header">
+          <div>SUBSTRATE</div><div>HOURS</div><div>MATERIALS</div><div>LABOR</div><div>SUBTOTAL</div><div></div>
+        </div>
+        <div class="substrate-row">
+          <div><div class="sub-row-name">Interior Walls</div><div class="sub-row-type">Walls</div></div>
+          <div class="sub-row-value">6.0</div>
+          <div class="sub-row-value">$128.40</div>
+          <div class="sub-row-value">$480.00</div>
+          <div class="sub-row-value bold">$608.40</div>
+          <div class="sub-row-actions"><button class="btn btn-outline btn-sm">Edit</button></div>
+        </div>
+        <div class="substrate-row">
+          <div><div class="sub-row-name">Ceiling</div><div class="sub-row-type">Ceiling</div></div>
+          <div class="sub-row-value">3.0</div>
+          <div class="sub-row-value">$64.20</div>
+          <div class="sub-row-value">$240.00</div>
+          <div class="sub-row-value bold">$304.20</div>
+          <div class="sub-row-actions"><button class="btn btn-outline btn-sm">Edit</button></div>
+        </div>
+        <div class="totals-row">
+          <div><div class="totals-label">Total Hours</div><div class="totals-value">9.0</div></div>
+          <div></div>
+          <div><div class="totals-label">Total Materials</div><div class="totals-value">$192.60</div></div>
+          <div><div class="totals-label">Total Labor</div><div class="totals-value">$720.00</div></div>
+          <div><div class="totals-label">Project Total</div><div class="totals-value" style="color:#6366f1">$912.60</div></div>
+          <div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Change Products Modal -->
+<div class="overlay" id="changeProductsModal" onclick="handleOverlayClick(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <span class="modal-title">Change products</span>
+        <span class="modal-area-badge" id="modalAreaBadge">
+          <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+          <span id="modalAreaName">Whole House</span>
+        </span>
+      </div>
+      <div class="close-btn" onclick="closeModal()">×</div>
+    </div>
+
+    <!-- Bulk Apply Row -->
+    <div class="bulk-apply-row">
+      <span class="bulk-label">Change all to:</span>
+      <select class="product-select" id="bulkProductSelect" onchange="handleBulkSelectChange()">
+        <option value="">Select a product...</option>
+        <option value="sw_superpaint_ext_satin">SW SuperPaint Ext. Satin — $32.22/gal</option>
+        <option value="sw_proclassic_waterborne">SW ProClassic Waterborne — $38.49/gal</option>
+        <option value="sw_emerald_ext">SW Emerald Exterior Satin — $67.49/gal</option>
+        <option value="sw_duration_ext">SW Duration Exterior Satin — $54.99/gal</option>
+        <option value="bm_regal_select">BM Regal Select — $71.99/gal</option>
+        <option value="bm_ben_ext">BM ben Exterior Flat — $43.99/gal</option>
+      </select>
+      <button class="btn btn-outline" id="applyAllBtn" onclick="applyAll()" disabled style="white-space:nowrap;opacity:0.4">Apply all</button>
+    </div>
+
+    <!-- Substrate List Table -->
+    <table class="substrate-table">
+      <thead>
+        <tr>
+          <th style="width:200px">SUBSTRATE</th>
+          <th>PRODUCT</th>
+          <th style="text-align:right">UNIT PRICE</th>
+        </tr>
+      </thead>
+      <tbody id="substrateTableBody">
+      </tbody>
+    </table>
+
+    <!-- Footer -->
+    <div class="modal-footer">
+      <div class="price-diff">
+        <span class="price-diff-label">Material price difference</span>
+        <span class="price-diff-value" id="priceDiffValue">+$0.00</span>
+      </div>
+      <div class="footer-actions">
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveChanges()">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Recalculating proposal pricing...</div>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast" id="successToast">
+  <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  Products updated. Proposal pricing has been recalculated.
+</div>
+
+<script>
+// ============================================================
+// DATA: Products from Production Rates
+// ============================================================
+const PRODUCTS = {
+  'sw_superpaint_ext_satin': { name: 'SW SuperPaint Ext. Satin', price: 32.22, unit: 'gal' },
+  'sw_proclassic_waterborne': { name: 'SW ProClassic Waterborne', price: 38.49, unit: 'gal' },
+  'sw_emerald_ext': { name: 'SW Emerald Exterior Satin', price: 67.49, unit: 'gal' },
+  'sw_duration_ext': { name: 'SW Duration Exterior Satin', price: 54.99, unit: 'gal' },
+  'bm_regal_select': { name: 'BM Regal Select', price: 71.99, unit: 'gal' },
+  'bm_ben_ext': { name: 'BM ben Exterior Flat', price: 43.99, unit: 'gal' }
+};
+
+// ============================================================
+// DATA: Substrates per area
+// ============================================================
+const AREAS = {
+  'Whole House': [
+    { id: 'siding_trim', name: 'Siding & Trim', type: 'Siding', productKey: 'sw_superpaint_ext_satin' },
+    { id: 'garage_door', name: 'Garage Door', type: 'Doors', productKey: 'sw_proclassic_waterborne' },
+    { id: 'man_door', name: 'Man Door(s)', type: 'Doors', productKey: 'sw_proclassic_waterborne' },
+    { id: 'area_prep', name: 'Area Prep', type: 'Prep', productKey: null }
+  ],
+  'Garage': [
+    { id: 'interior_walls', name: 'Interior Walls', type: 'Walls', productKey: 'sw_superpaint_ext_satin' },
+    { id: 'ceiling', name: 'Ceiling', type: 'Ceiling', productKey: 'bm_ben_ext' }
+  ]
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let currentArea = null;
+let pendingSelections = {};
+let originalSelections = {};
+
+// ============================================================
+// MODAL LOGIC
+// ============================================================
+function openModal(areaName) {
+  currentArea = areaName;
+  pendingSelections = {};
+
+  // Set area name in modal header
+  document.getElementById('modalAreaName').textContent = areaName;
+  
+  // Reset bulk select
+  const bulkSelect = document.getElementById('bulkProductSelect');
+  bulkSelect.value = '';
+  document.getElementById('applyAllBtn').disabled = true;
+  document.getElementById('applyAllBtn').style.opacity = '0.4';
+
+  // Build substrate rows
+  const substrates = AREAS[areaName] || [];
+  originalSelections = {};
+  substrates.forEach(s => { originalSelections[s.id] = s.productKey; });
+  
+  renderSubstrateRows(substrates);
+  updatePriceDiff();
+  
+  document.getElementById('changeProductsModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('changeProductsModal').classList.remove('open');
+  document.body.style.overflow = '';
+  currentArea = null;
+  pendingSelections = {};
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('changeProductsModal')) closeModal();
+}
+
+function renderSubstrateRows(substrates) {
+  const tbody = document.getElementById('substrateTableBody');
+  tbody.innerHTML = substrates.map(s => {
+    const currentKey = pendingSelections[s.id] !== undefined ? pendingSelections[s.id] : s.productKey;
+    const currentProduct = currentKey ? PRODUCTS[currentKey] : null;
+    const hasProduct = currentKey !== null;
+    
+    const productOptions = Object.entries(PRODUCTS).map(([key, p]) => 
+      '<option value="' + key + '"' + (key === currentKey ? ' selected' : '') + '>' + p.name + '</option>'
+    ).join('');
+
+    return '<tr>' +
+      '<td><div class="substrate-name">' + s.name + '</div><div class="substrate-type">' + s.type + '</div></td>' +
+      '<td>' + (hasProduct 
+        ? '<select class="product-select-inline" onchange="handleSubstrateChange(\'' + s.id + '\', this.value)"><option value="">Select a product...</option>' + productOptions + '</select>'
+        : '<span class="no-product-text">No product</span>'
+      ) + '</td>' +
+      '<td style="text-align:right">' + (currentProduct 
+        ? '<span class="unit-price">$' + currentProduct.price.toFixed(2) + ' <span class="unit-price-unit">/' + currentProduct.unit + '</span></span>'
+        : '<span style="color:#d1d5db">—</span>'
+      ) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function handleSubstrateChange(substrateId, productKey) {
+  pendingSelections[substrateId] = productKey || null;
+  
+  // Update unit price cell for this row
+  const substrates = AREAS[currentArea] || [];
+  const substrateIndex = substrates.findIndex(s => s.id === substrateId);
+  if (substrateIndex >= 0) {
+    const rows = document.querySelectorAll('#substrateTableBody tr');
+    const row = rows[substrateIndex];
+    if (row) {
+      const priceCell = row.cells[2];
+      const product = productKey ? PRODUCTS[productKey] : null;
+      priceCell.innerHTML = product 
+        ? '<span class="unit-price">$' + product.price.toFixed(2) + ' <span class="unit-price-unit">/' + product.unit + '</span></span>'
+        : '<span style="color:#d1d5db">—</span>';
+    }
+  }
+  updatePriceDiff();
+}
+
+function handleBulkSelectChange() {
+  const val = document.getElementById('bulkProductSelect').value;
+  const btn = document.getElementById('applyAllBtn');
+  btn.disabled = !val;
+  btn.style.opacity = val ? '1' : '0.4';
+}
+
+function applyAll() {
+  const bulkKey = document.getElementById('bulkProductSelect').value;
+  if (!bulkKey) return;
+  
+  const substrates = AREAS[currentArea] || [];
+  substrates.forEach(s => {
+    if (s.productKey !== null) { // Only substrates that have a product
+      pendingSelections[s.id] = bulkKey;
+    }
+  });
+  renderSubstrateRows(substrates);
+  updatePriceDiff();
+}
+
+function updatePriceDiff() {
+  const substrates = AREAS[currentArea] || [];
+  let diff = 0;
+  
+  substrates.forEach(s => {
+    const origKey = originalSelections[s.id];
+    const newKey = pendingSelections[s.id] !== undefined ? pendingSelections[s.id] : origKey;
+    
+    const origPrice = origKey ? PRODUCTS[origKey].price : 0;
+    const newPrice = newKey ? PRODUCTS[newKey].price : 0;
+    
+    // Simulating ~2 gallons per substrate for diff calculation
+    const gallons = s.type === 'Siding' ? 18 : s.type === 'Doors' ? 2 : 1;
+    diff += (newPrice - origPrice) * gallons;
+  });
+  
+  const el = document.getElementById('priceDiffValue');
+  el.textContent = (diff >= 0 ? '+' : '') + '$' + Math.abs(diff).toFixed(2);
+  el.className = 'price-diff-value' + (diff < 0 ? ' negative' : '');
+}
+
+function saveChanges() {
+  closeModal();
+  
+  // Apply pending changes to AREAS data
+  if (currentArea || Object.keys(pendingSelections).length > 0) {
+    // Get active area from last modal open (stored before close)
+  }
+  
+  // Show loading
+  document.getElementById('loadingOverlay').classList.add('show');
+  
+  setTimeout(() => {
+    document.getElementById('loadingOverlay').classList.remove('show');
+    
+    // Show toast
+    const toast = document.getElementById('successToast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 4000);
+  }, 1800);
+}
+
+// Tab switching (for sidebar items)
+function showSection(section) {
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+</script>
+</body>
+</html>
