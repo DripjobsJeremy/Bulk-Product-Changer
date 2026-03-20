@@ -143,12 +143,13 @@
   .csel-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .csel-arrow{flex-shrink:0;transition:transform 0.15s}
   .csel.open .csel-arrow{transform:rotate(180deg)}
-  .csel-list{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:500;overflow:hidden;max-height:260px;overflow-y:auto}
-  .csel-search-wrap{padding:8px 10px;border-bottom:1px solid #e5e7eb;position:sticky;top:0;background:#fff;z-index:1}
+  .csel-list{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:500;overflow:hidden;max-height:280px;flex-direction:column}
+  .csel.open .csel-list{display:flex}
+  .csel-search-wrap{flex-shrink:0;padding:8px 10px;border-bottom:1px solid #e5e7eb;background:#fff}
   .csel-search{width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:6px;padding:6px 10px;font-size:13px;color:#374151;outline:none}
   .csel-search:focus{border-color:#6366f1}
+  .csel-opts-scroll{overflow-y:auto;flex:1;min-height:0}
   .csel-no-results{padding:10px 12px;font-size:13px;color:#9ca3af;text-align:center}
-  .csel.open .csel-list{display:block}
   .csel-opt{padding:9px 12px;cursor:pointer;border-bottom:1px solid #f3f4f6}
   .csel-opt:last-child{border-bottom:none}
   .csel-opt:hover{background:#f0f0ff}
@@ -534,7 +535,7 @@ function buildCustomSelect(substrateId, currentKey) {
     '<span class="csel-label">' + label + '</span>' +
     '<svg class="csel-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
     '</div>' +
-    '<div class="csel-list">' + searchHtml + opts + '</div>' +
+    '<div class="csel-list">' + searchHtml + '<div class="csel-opts-scroll">' + opts + '</div></div>' +
     '</div>';
 }
 
@@ -571,7 +572,7 @@ function filterOpts(cs) {
     noRes = document.createElement('div');
     noRes.className = 'csel-no-results';
     noRes.textContent = 'No products found';
-    cs.querySelector('.csel-list').appendChild(noRes);
+    cs.querySelector('.csel-opts-scroll').appendChild(noRes);
   }
   noRes.style.display = visible === 0 ? '' : 'none';
 }
