@@ -635,11 +635,11 @@ function updatePriceDiff() {
     el.textContent = 'No change';
     el.className = 'price-diff-value';
   } else if (diff < 0) {
-    el.textContent = 'Saves $' + Math.abs(diff).toFixed(2);
-    el.className = 'price-diff-value savings';
+    el.textContent = '$' + Math.abs(diff).toFixed(2) + ' Less';
+    el.className = 'price-diff-value increase';
   } else {
     el.textContent = '+$' + diff.toFixed(2) + ' more';
-    el.className = 'price-diff-value increase';
+    el.className = 'price-diff-value savings';
   }
 }
 
