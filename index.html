@@ -150,6 +150,8 @@
   .csel-search:focus{border-color:#6366f1}
   .csel-opts-scroll{overflow-y:auto;flex:1;min-height:0}
   .csel-no-results{padding:10px 12px;font-size:13px;color:#9ca3af;text-align:center}
+  .csel-bulk{flex:1;max-width:none}
+  .csel-label-placeholder{color:#9ca3af}
   .csel-opt{padding:9px 12px;cursor:pointer;border-bottom:1px solid #f3f4f6}
   .csel-opt:last-child{border-bottom:none}
   .csel-opt:hover{background:#f0f0ff}
@@ -393,15 +395,24 @@
     <!-- Bulk Apply Row -->
     <div class="bulk-apply-row">
       <span class="bulk-label">Change all to:</span>
-      <select class="product-select" id="bulkProductSelect" onchange="handleBulkSelectChange()">
-        <option value="">Select a product...</option>
-        <option value="sw_superpaint_ext_satin">SW SuperPaint Ext. Satin — $32.22/gal</option>
-        <option value="sw_proclassic_waterborne">SW ProClassic Waterborne — $38.49/gal</option>
-        <option value="sw_emerald_ext">SW Emerald Exterior Satin — $67.49/gal</option>
-        <option value="sw_duration_ext">SW Duration Exterior Satin — $54.99/gal</option>
-        <option value="bm_regal_select">BM Regal Select — $71.99/gal</option>
-        <option value="bm_ben_ext">BM ben Exterior Flat — $43.99/gal</option>
-      </select>
+      <div class="csel csel-bulk" id="bulkCsel">
+        <div class="csel-trigger" tabindex="0" onclick="toggleSel('bulkCsel', event)">
+          <span class="csel-label csel-label-placeholder">Select a product...</span>
+          <svg class="csel-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="csel-list">
+          <div class="csel-search-wrap"><input class="csel-search" type="text" placeholder="Search products..." oninput="filterOpts(this.closest('.csel'))"></div>
+          <div class="csel-opts-scroll">
+            <div class="csel-opt" data-key="sw_superpaint_ext_satin" onmousedown="pickBulkOpt('sw_superpaint_ext_satin')"><span class="csel-opt-name">SW SuperPaint Ext. Satin</span><span class="csel-opt-price">$32.22/gal</span></div>
+            <div class="csel-opt" data-key="sw_proclassic_waterborne" onmousedown="pickBulkOpt('sw_proclassic_waterborne')"><span class="csel-opt-name">SW ProClassic Waterborne</span><span class="csel-opt-price">$38.49/gal</span></div>
+            <div class="csel-opt" data-key="sw_emerald_ext" onmousedown="pickBulkOpt('sw_emerald_ext')"><span class="csel-opt-name">SW Emerald Exterior Satin</span><span class="csel-opt-price">$67.49/gal</span></div>
+            <div class="csel-opt" data-key="sw_duration_ext" onmousedown="pickBulkOpt('sw_duration_ext')"><span class="csel-opt-name">SW Duration Exterior Satin</span><span class="csel-opt-price">$54.99/gal</span></div>
+            <div class="csel-opt" data-key="bm_regal_select" onmousedown="pickBulkOpt('bm_regal_select')"><span class="csel-opt-name">BM Regal Select</span><span class="csel-opt-price">$71.99/gal</span></div>
+            <div class="csel-opt" data-key="bm_ben_ext" onmousedown="pickBulkOpt('bm_ben_ext')"><span class="csel-opt-name">BM ben Exterior Flat</span><span class="csel-opt-price">$43.99/gal</span></div>
+          </div>
+        </div>
+      </div>
+      <input type="hidden" id="bulkProductSelect">
       <button class="btn btn-outline" id="applyAllBtn" onclick="applyAll()" disabled style="white-space:nowrap;opacity:0.4">Apply all</button>
     </div>
 
@@ -491,8 +502,12 @@ function openModal(areaName) {
   document.getElementById('modalAreaName').textContent = areaName;
   
   // Reset bulk select
-  const bulkSelect = document.getElementById('bulkProductSelect');
-  bulkSelect.value = '';
+  document.getElementById('bulkProductSelect').value = '';
+  const bulkCs = document.getElementById('bulkCsel');
+  const bulkLabel = bulkCs.querySelector('.csel-label');
+  bulkLabel.textContent = 'Select a product...';
+  bulkLabel.classList.add('csel-label-placeholder');
+  bulkCs.querySelectorAll('.csel-opt').forEach(o => o.classList.remove('active'));
   document.getElementById('applyAllBtn').disabled = true;
   document.getElementById('applyAllBtn').style.opacity = '0.4';
 
@@ -624,6 +639,18 @@ function handleSubstrateChange(substrateId, productKey) {
     }
   }
   updatePriceDiff();
+}
+
+function pickBulkOpt(key) {
+  const p = PRODUCTS[key];
+  const cs = document.getElementById('bulkCsel');
+  const label = cs.querySelector('.csel-label');
+  label.textContent = p.name + ' — $' + p.price.toFixed(2) + '/' + p.unit;
+  label.classList.remove('csel-label-placeholder');
+  cs.querySelectorAll('.csel-opt').forEach(o => o.classList.toggle('active', o.dataset.key === key));
+  cs.classList.remove('open');
+  document.getElementById('bulkProductSelect').value = key;
+  handleBulkSelectChange();
 }
 
 function handleBulkSelectChange() {
