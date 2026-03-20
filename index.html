@@ -143,7 +143,11 @@
   .csel-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .csel-arrow{flex-shrink:0;transition:transform 0.15s}
   .csel.open .csel-arrow{transform:rotate(180deg)}
-  .csel-list{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:500;overflow:hidden;max-height:220px;overflow-y:auto}
+  .csel-list{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:500;overflow:hidden;max-height:260px;overflow-y:auto}
+  .csel-search-wrap{padding:8px 10px;border-bottom:1px solid #e5e7eb;position:sticky;top:0;background:#fff;z-index:1}
+  .csel-search{width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:6px;padding:6px 10px;font-size:13px;color:#374151;outline:none}
+  .csel-search:focus{border-color:#6366f1}
+  .csel-no-results{padding:10px 12px;font-size:13px;color:#9ca3af;text-align:center}
   .csel.open .csel-list{display:block}
   .csel-opt{padding:9px 12px;cursor:pointer;border-bottom:1px solid #f3f4f6}
   .csel-opt:last-child{border-bottom:none}
@@ -524,29 +528,57 @@ function buildCustomSelect(substrateId, currentKey) {
     '<span class="csel-opt-price">$' + p.price.toFixed(2) + '/' + p.unit + '</span>' +
     '</div>'
   ).join('');
+  const searchHtml = '<div class="csel-search-wrap"><input class="csel-search" type="text" placeholder="Search products..." oninput="filterOpts(this.closest(\'.csel\'))"></div>';
   return '<div class="csel" id="' + csId + '">' +
-    '<div class="csel-trigger" tabindex="0" onclick="toggleSel(\'' + csId + '\')" onblur="closeSel(\'' + csId + '\')">' +
+    '<div class="csel-trigger" tabindex="0" onclick="toggleSel(\'' + csId + '\', event)">' +
     '<span class="csel-label">' + label + '</span>' +
     '<svg class="csel-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
     '</div>' +
-    '<div class="csel-list">' + opts + '</div>' +
+    '<div class="csel-list">' + searchHtml + opts + '</div>' +
     '</div>';
 }
 
-function toggleSel(csId) {
+function toggleSel(csId, event) {
+  if (event) event.stopPropagation();
   const cs = document.getElementById(csId);
   const wasOpen = cs.classList.contains('open');
-  document.querySelectorAll('.csel.open').forEach(el => el.classList.remove('open'));
-  if (!wasOpen) cs.classList.add('open');
+  closeAllSels();
+  if (!wasOpen) {
+    cs.classList.add('open');
+    const si = cs.querySelector('.csel-search');
+    if (si) { si.value = ''; filterOpts(cs); setTimeout(() => si.focus(), 0); }
+  }
 }
 
-function closeSel(csId) {
-  // Delay so onmousedown on an option fires before blur closes the list.
-  setTimeout(() => {
-    const cs = document.getElementById(csId);
-    if (cs) cs.classList.remove('open');
-  }, 0);
+function closeAllSels() {
+  document.querySelectorAll('.csel.open').forEach(el => {
+    el.classList.remove('open');
+    const si = el.querySelector('.csel-search');
+    if (si) { si.value = ''; filterOpts(el); }
+  });
 }
+
+function filterOpts(cs) {
+  const q = (cs.querySelector('.csel-search').value || '').trim().toLowerCase();
+  let visible = 0;
+  cs.querySelectorAll('.csel-opt').forEach(o => {
+    const match = o.querySelector('.csel-opt-name').textContent.toLowerCase().includes(q);
+    o.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  let noRes = cs.querySelector('.csel-no-results');
+  if (!noRes) {
+    noRes = document.createElement('div');
+    noRes.className = 'csel-no-results';
+    noRes.textContent = 'No products found';
+    cs.querySelector('.csel-list').appendChild(noRes);
+  }
+  noRes.style.display = visible === 0 ? '' : 'none';
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.csel')) closeAllSels();
+});
 
 function pickOpt(csId, substrateId, productKey) {
   const cs = document.getElementById(csId);
